@@ -1,104 +1,35 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-/**
- * Main page component that handles WebSocket communication and data display
- */
-import { useEffect, useState } from "react";
-
-interface Message {
-  type: "childProcess" | "polling" | "connection";
-  data?: any;
-  status?: string;
-}
+import { MeasurementDisplay } from "@/components/spl-meter";
+import { ExecutorGrid } from "@/components/executor-grid";
+import { ConnectionStatus } from "@/components/status";
+import { PotentiometerDisplay } from "@/components/poti";
 
 export default function Home() {
-  const [childProcessData, setChildProcessData] = useState<any>(null);
-  const [pollingData, setPollingData] = useState<any>(null);
-  const [wsStatus, setWsStatus] = useState<
-    "connecting" | "connected" | "disconnected"
-  >("disconnected");
-
-  useEffect(() => {
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
-
-    ws.onopen = () => {
-      console.log("WebSocket connection established");
-      setWsStatus("connected");
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      setWsStatus("disconnected");
-      // Attempt to reconnect after 1 second
-      setTimeout(() => {
-        setWsStatus("connecting");
-      }, 1000);
-    };
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const message: Message = JSON.parse(event.data);
-        switch (message.type) {
-          case "connection":
-            console.log("Connection status:", message.status);
-            break;
-          case "childProcess":
-            setChildProcessData(message.data);
-            break;
-          case "polling":
-            setPollingData(message.data);
-            break;
-        }
-      } catch (error) {
-        console.error("Failed to parse WebSocket message:", error);
-      }
-    };
-
-    return () => {
-      ws.close();
-    };
-  }, []);
-
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">WebSocket Status</h2>
-          <div
-            className={`
-                        inline-block px-3 py-1 rounded-full
-                        ${
-                          wsStatus === "connected"
-                            ? "bg-green-500 text-white"
-                            : wsStatus === "connecting"
-                            ? "bg-yellow-500 text-white"
-                            : "bg-red-500 text-white"
-                        }
-                    `}
-          >
-            {wsStatus}
+    <main className="bg-black w-[1480px] h-[380px] overflow-hidden relative">
+      {/* Left Section - 1/5 width */}
+      <div className="absolute left-0 top-0 w-[296px] h-full border-r border-orange-500">
+        <MeasurementDisplay />
+      </div>
+
+      {/* Right Section - 4/5 width */}
+      <div className="absolute left-[296px] top-0 w-[1184px] h-full">
+        {/* Top Bar with Potentiometers */}
+        <div className="h-12 relative">
+          <div className="absolute right-4 top-2 flex gap-4">
+            <PotentiometerDisplay label="Pot 1" />
+            <PotentiometerDisplay label="Pot 2" />
+          </div>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <ConnectionStatus />
           </div>
         </div>
 
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Child Process Data</h2>
-          <pre className="bg-white p-4 rounded overflow-auto max-h-60">
-            {childProcessData
-              ? JSON.stringify(childProcessData, null, 2)
-              : "No data"}
-          </pre>
-        </div>
-
-        <div className="bg-gray-100 p-4 rounded-lg">
-          <h2 className="text-xl font-semibold mb-2">Polling Data</h2>
-          <pre className="bg-white p-4 rounded overflow-auto max-h-60">
-            {pollingData ? JSON.stringify(pollingData, null, 2) : "No data"}
-          </pre>
+        {/* Executor Grids */}
+        <div className="flex gap-4 px-4">
+          <ExecutorGrid startNumber={1} />
+          <ExecutorGrid startNumber={21} />
         </div>
       </div>
     </main>

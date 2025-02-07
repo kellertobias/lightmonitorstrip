@@ -21,8 +21,12 @@
         "name": "next"
       }
     ],
-    "types": ["reflect-metadata", "node"],
+    "baseUrl": ".",
     "paths": {
+      "@/app/*": ["./src/app/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/utils/*": ["./src/utils/*"],
       "@/*": ["./src/*"]
     }
   },
@@ -33,9 +37,5 @@
     ".next/types/**/*.ts",
     "next.config.js"
   ],
-  "exclude": ["node_modules"],
-  "ts-node": {
-    "esm": true,
-    "experimentalSpecifiers": true
-  }
+  "exclude": ["node_modules"]
 }

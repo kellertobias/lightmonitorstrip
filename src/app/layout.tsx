@@ -1,19 +1,25 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { WebSocketProvider } from "@/contexts/WebSocketContext";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Light Assistant",
-  description: "Light Assistant",
+  description: "Light control assistant application",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>
+        <WebSocketProvider>{children}</WebSocketProvider>
+      </body>
     </html>
   );
 }

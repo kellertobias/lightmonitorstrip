@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "tsx src/server.ts",
+    "dev": "concurrently --names \"API,WEB\" \"tsx src/websocket-server/server.ts\" \"next dev\"",
     "build": "next build",
-    "start": "NODE_ENV=production tsx src/server.ts",
+    "start": "NODE_ENV=production concurrently \"tsx src/websocket-server/server.ts\" \"next start\"",
     "lint": "next lint"
   },
   "dependencies": {
@@ -21,6 +21,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "concurrently": "^8.2.2",
     "eslint": "^8",
     "eslint-config-next": "14.1.4",
     "postcss": "^8",
