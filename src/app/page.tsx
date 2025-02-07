@@ -1,11 +1,17 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import React from "react";
+
 import { MeasurementDisplay } from "@/components/spl-meter";
 import { ExecutorGrid } from "@/components/executor-grid";
 import { ConnectionStatus } from "@/components/status";
 import { PotentiometerDisplay } from "@/components/poti";
 
-export default function Home() {
+const withNoSSR = (Component: React.FunctionComponent) =>
+  dynamic(() => Promise.resolve(Component), { ssr: false });
+
+export default withNoSSR(function Home() {
   return (
     <main className="bg-black w-[1480px] h-[380px] overflow-hidden relative">
       {/* Left Section - 1/5 width */}
@@ -34,4 +40,4 @@ export default function Home() {
       </div>
     </main>
   );
-}
+});
