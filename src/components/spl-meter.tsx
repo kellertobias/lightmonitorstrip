@@ -42,6 +42,9 @@ export function SPLMeter() {
       ].slice(-amountMeasurements);
 
       setMeasurements([...measurementAverageArrayRef.current]);
+    }, 100);
+
+    const currentInterval = setInterval(() => {
       setCurrent(measurementRef.current);
     }, 50);
 
@@ -52,6 +55,7 @@ export function SPLMeter() {
     return () => {
       clearInterval(interval);
       clearInterval(peakInterval);
+      clearInterval(currentInterval);
     };
   }, []);
 
