@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { SPLGraph } from "./spl-graph";
+import { getColor, SPLBar, SPLGraph } from "./spl-graph";
 
 interface MeasurementData {
   measured: number;
@@ -17,13 +17,6 @@ interface WSMessage {
   data: MeasurementData;
 }
 
-// Get color based on dBA value
-const getColor = (value: number) => {
-  if (value < 80) return "text-green-500";
-  if (value < 93) return "text-yellow-500";
-  return "text-red-500";
-};
-
 const amountMeasurements = 200;
 
 export function SPLMeter() {
@@ -32,6 +25,7 @@ export function SPLMeter() {
 
   const [measurements, setMeasurements] = useState<number[]>([]);
   const [peak, setPeak] = useState<number>(0);
+  const [current, setCurrent] = useState<number>(0);
 
   const handleMessage = useCallback((message: WSMessage) => {
     if (message.type === "childProcess") {
@@ -48,6 +42,7 @@ export function SPLMeter() {
       ].slice(-amountMeasurements);
 
       setMeasurements([...measurementAverageArrayRef.current]);
+      setCurrent(measurementRef.current);
     }, 50);
 
     const peakInterval = setInterval(() => {
@@ -71,18 +66,27 @@ export function SPLMeter() {
             <span className={getColor(peak)}>{Number(peak).toFixed(1)}</span>
             <span className="text-2xl ml-2">dBA</span>
           </div>
-          <div className="text-gray-400">5s Average</div>
+          <div className="h-2 w-full px-10">
+            <div className="h-2 bg-gray-700 rounded-full">
+              <SPLBar value={current} />
+            </div>
+          </div>
         </div>
 
         {/* Graph */}
-        <div className="h-24">
-          <SPLGraph data={measurements} maxPoints={amountMeasurements} />
-        </div>
-
-        {/* Range Display */}
-        <div className="flex justify-between text-xs text-gray-400">
-          <span>30 dBA</span>
-          <span>130 dBA</span>
+        <div className="flex justify-stretch gap-2 pt-4">
+          <div className="h-24 grow relative">
+            <SPLGraph data={measurements} maxPoints={amountMeasurements} />
+            <div
+              className="absolute 
+            top-0 bottom-0 right-0
+            p-1.5
+            flex flex-col justify-between text-xs text-gray-400"
+            >
+              <span>130 dBA</span>
+              <span>30 dBA</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

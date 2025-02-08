@@ -20,31 +20,22 @@ export default function Home() {
           "grid grid-cols-7"
         )}
       >
-        <div className="col-span-2 grid grid-rows-12 h-full">
-          <div className="row-span-1"></div>
+        <div className="col-span-2 grid grid-rows-13 h-[380px]">
+          <div className="row-span-2 flex justify-center items-center pt-3">
+            <ConnectionStatus />
+          </div>
           <div className="row-span-3">
             <Clock />
           </div>
-          <div className="row-span-8">
+          <div className="row-span-7">
             <SPLMeter />
           </div>
         </div>
 
         {/* Right Section - 4/5 width */}
-        <div className="col-span-5 h-full">
-          {/* Top Bar with Potentiometers */}
-          <div className="h-12 relative">
-            <div className="absolute right-4 top-2 flex gap-4">
-              <PotentiometerDisplay label="Pot 1" />
-              <PotentiometerDisplay label="Pot 2" />
-            </div>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <ConnectionStatus />
-            </div>
-          </div>
-
+        <div className="col-span-5 h-[380px]">
           {/* Executor Grids */}
-          <div className="flex gap-4 px-4">
+          <div className="grid grid-cols-2 grid-rows-1 h-full py-6 gap-6 px-4">
             <ExecutorGrid startNumber={1} />
             <ExecutorGrid startNumber={21} />
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import clsx from "clsx";
 import { useCallback, useMemo } from "react";
 
 interface SPLGraphProps {
@@ -39,6 +40,47 @@ const makeScalePoint = (props: {
   };
 };
 
+// Get color based on dBA value
+export const getColor = (value: number) => {
+  if (value < 80) return "text-green-500";
+  if (value < 93) return "text-yellow-500";
+  return "text-red-500";
+};
+
+export function SPLBar({
+  value,
+  minValue = 55,
+  maxValue = 110,
+  className = "",
+}: {
+  value: number;
+  minValue?: number;
+  maxValue?: number;
+  className?: string;
+}) {
+  const svgWidth = 200;
+  const svgHeight = 100;
+
+  // Calculate scaled value for bar height
+  const barSize = scaleValue(value, maxValue, minValue, svgWidth);
+
+  return (
+    <svg
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+      preserveAspectRatio="none"
+      className={clsx("w-full h-full rounded-lg", className, getColor(value))}
+    >
+      <rect
+        y="0"
+        x={0}
+        height={svgWidth}
+        width={barSize}
+        className="fill-current"
+      />
+    </svg>
+  );
+}
+
 export function SPLGraph({
   data,
   maxPoints = 100,
@@ -74,9 +116,9 @@ export function SPLGraph({
 
   return (
     <svg
-      viewBox={`0 0 ${svgWidth} ${svgHeight} ${className}`}
+      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
       preserveAspectRatio="none"
-      className="w-full h-full rounded-lg"
+      className={clsx("w-full h-full rounded-lg", className)}
     >
       <defs>
         {/* Gradient for the line - using gradientUnits="userSpaceOnUse" to make it absolute */}

@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import { ChildProcess } from "./services/child-process";
 import { Polling } from "./services/polling";
+import { existsSync } from "fs";
 
 const WS_PORT = Number(process.env.WS_PORT || 3001);
 
@@ -46,7 +47,13 @@ class WebSocketService {
     });
 
     // Start services
-    this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
+    // check if the executable /home/keller/repos/gm1356/splread exists.
+    // if so, start the child process. Otherwise start the mock process.
+    if (existsSync("/home/keller/repos/gm1356/splread")) {
+      this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
+    } else {
+      this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
+    }
     // this.polling.start();
 
     console.log(`WebSocket server running on ws://localhost:${WS_PORT}`);

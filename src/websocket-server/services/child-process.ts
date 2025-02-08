@@ -4,9 +4,54 @@ import { EventEmitter } from "events";
 export class ChildProcess extends EventEmitter {
   private process: CP | null = null;
   private buffer: string = "";
+  private command: string = "";
+  private args: string[] = [];
+
+  // Restart tracking
+  private restartAttempts: number[] = [];
+  private readonly maxRestarts = 5;
+  private readonly restartWindow = 60 * 1000; // 1 minute in ms
+  private readonly backoffTime = 5 * 60 * 1000; // 5 minutes in ms
+  private backoffTimeout: NodeJS.Timeout | null = null;
 
   start(command: string, args: string[] = []): void {
-    this.process = spawn(command, args);
+    this.command = command;
+    this.args = args;
+    this.startProcess();
+  }
+
+  private startProcess(): void {
+    // Check if we're in backoff period
+    if (this.backoffTimeout) {
+      this.emit(
+        "error",
+        new Error("Process restart delayed due to too many failures")
+      );
+      return;
+    }
+
+    // Clean up old restart attempts outside the window
+    const now = Date.now();
+    this.restartAttempts = this.restartAttempts.filter(
+      (time) => now - time < this.restartWindow
+    );
+
+    // Check if we've hit the restart limit
+    if (this.restartAttempts.length >= this.maxRestarts) {
+      console.warn("Too many restart attempts, backing off for 5 minutes");
+      this.backoffTimeout = setTimeout(() => {
+        this.backoffTimeout = null;
+        this.restartAttempts = [];
+        this.startProcess();
+      }, this.backoffTime);
+      return;
+    }
+
+    // Start the process
+    this.process = spawn(this.command, this.args);
+
+    // Track restart attempt
+    this.restartAttempts.push(now);
 
     this.process.stdout?.on("data", (data: Buffer) => {
       this.handleData(data.toString());
@@ -18,7 +63,19 @@ export class ChildProcess extends EventEmitter {
 
     this.process.on("error", (error: Error) => {
       this.emit("error", error);
+      this.handleProcessExit();
     });
+
+    this.process.on("exit", (code: number | null) => {
+      console.warn(`Child process exited with code ${code}`);
+      this.handleProcessExit();
+    });
+  }
+
+  private handleProcessExit(): void {
+    this.process = null;
+    // Attempt restart with a small delay to prevent rapid cycling
+    setTimeout(() => this.startProcess(), 1000);
   }
 
   private handleData(chunk: string): void {
@@ -42,9 +99,14 @@ export class ChildProcess extends EventEmitter {
   }
 
   stop(): void {
+    if (this.backoffTimeout) {
+      clearTimeout(this.backoffTimeout);
+      this.backoffTimeout = null;
+    }
     if (this.process) {
       this.process.kill();
       this.process = null;
     }
+    this.restartAttempts = [];
   }
 }
