@@ -17,7 +17,7 @@ interface WSMessage {
   data: MeasurementData;
 }
 
-const amountMeasurements = 200;
+const amountMeasurements = 400;
 
 export function SPLMeter() {
   const measurementRef = useRef<number>(0);
@@ -42,7 +42,7 @@ export function SPLMeter() {
       ].slice(-amountMeasurements);
 
       setMeasurements([...measurementAverageArrayRef.current]);
-    }, 100);
+    }, 60);
 
     const currentInterval = setInterval(() => {
       setCurrent(measurementRef.current);
