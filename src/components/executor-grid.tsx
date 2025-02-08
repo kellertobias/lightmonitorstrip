@@ -15,11 +15,11 @@ export function ExecutorGrid({ startNumber }: ExecutorGridProps) {
           className={clsx(
             "border-2 border-orange-500 rounded-md",
             "flex flex-col items-center justify-center text-center",
-            "font-mono text-sm p-2 pt-5 relative"
+            "font-mono text-sm p-2 pt-4 relative"
           )}
         >
-          <div className="text-xs opacity-25 absolute top-1 left-1 right-1">
-            Exec. {startNumber + i}
+          <div className="text-xs text-gray-500 absolute top-0.5 left-1">
+            {startNumber + i}
           </div>
           <div className="text-white">Washers RED</div>
         </div>

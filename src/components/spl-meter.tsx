@@ -58,23 +58,25 @@ export function SPLMeter() {
   useWebSocket(handleMessage, []);
 
   return (
-    <div className="p-4 text-white">
+    <div className="p-6 pt-0 text-white">
       {/* Measurement Display */}
       <div className="space-y-4">
         <div className="text-center">
-          <div className="text-6xl font-bold mb-2 font-mono">
+          <div className="text-5xl font-bold mb-2 font-mono flex flex-row items-center justify-center px-10">
             <span className={getColor(peak)}>{Number(peak).toFixed(1)}</span>
-            <span className="text-2xl ml-2">dBA</span>
-          </div>
-          <div className="h-2 w-full px-10">
-            <div className="h-2 bg-gray-700 rounded-full">
-              <SPLBar value={current} />
+            <div className="flex flex-col items-start justify-start px-4">
+              <span className="text-xl mb-1">dBA</span>
+              <div className="h-1 w-full">
+                <div className="h-1 bg-gray-700 rounded-full">
+                  <SPLBar value={current} />
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Graph */}
-        <div className="flex justify-stretch gap-2 pt-4">
+        <div className="flex justify-stretch gap-2 pt-0">
           <div className="h-24 grow relative">
             <SPLGraph data={measurements} maxPoints={amountMeasurements} />
             <div
