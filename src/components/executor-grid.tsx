@@ -21,7 +21,7 @@ export function ExecutorGrid({ startNumber }: ExecutorGridProps) {
           <div className="text-xs opacity-25 absolute top-1 left-1 right-1">
             Exec. {startNumber + i}
           </div>
-          <div className="">Washers RED</div>
+          <div className="text-white">Washers RED</div>
         </div>
       ))}
     </div>

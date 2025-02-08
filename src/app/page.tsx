@@ -14,7 +14,7 @@ export default function Home() {
     <div className="flex justify-center items-center h-screen">
       <main
         className={clsx(
-          "w-[1480px] h-[380px]",
+          "w-[1480px] h-[340px]",
           "outline outline-gray-900",
           "bg-black  overflow-hidden relative",
           "grid grid-cols-7"
