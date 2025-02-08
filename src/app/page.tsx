@@ -11,7 +11,7 @@ import { Clock } from "@/components/clock";
 
 export default function Home() {
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center h-screen cursor-none">
       <main
         className={clsx(
           "w-[1480px] h-[320px]",
