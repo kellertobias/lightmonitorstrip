@@ -62,7 +62,6 @@ export class ChildProcess extends EventEmitter {
     });
 
     this.process.on("error", (error: Error) => {
-      this.emit("error", error);
       this.handleProcessExit();
     });
 
@@ -75,7 +74,7 @@ export class ChildProcess extends EventEmitter {
   private handleProcessExit(): void {
     this.process = null;
     // Attempt restart with a small delay to prevent rapid cycling
-    setTimeout(() => this.startProcess(), 1000);
+    setTimeout(() => this.startProcess(), 10000);
   }
 
   private handleData(chunk: string): void {
