@@ -9,6 +9,7 @@ class WebSocketService {
   private wss: WebSocketServer;
   private childProcess: ChildProcess;
   private polling: Polling;
+  private isShuttingDown = false;
 
   constructor() {
     // Initialize WebSocket server on its own port
@@ -38,12 +39,16 @@ class WebSocketService {
 
     // Broadcast child process data
     this.childProcess.on("data", (data) => {
-      this.broadcast({ type: "childProcess", data });
+      if (!this.isShuttingDown) {
+        this.broadcast({ type: "childProcess", data });
+      }
     });
 
     // Broadcast polling data
     this.polling.on("change", (data) => {
-      this.broadcast({ type: "polling", data });
+      if (!this.isShuttingDown) {
+        this.broadcast({ type: "polling", data });
+      }
     });
 
     // Start services
@@ -75,14 +80,53 @@ class WebSocketService {
     });
   }
 
-  public stop(): void {
-    this.childProcess.stop();
-    this.polling.stop();
-    this.wss.close();
+  public async stop(): Promise<void> {
+    console.log("Shutting down WebSocket service...");
+    this.isShuttingDown = true;
+
+    // Close all client connections first
+    for (const client of this.wss.clients) {
+      try {
+        client.close();
+      } catch (error) {
+        console.error("Error closing client connection:", error);
+      }
+    }
+
+    // Stop child process and polling
+    await Promise.all([this.childProcess.stop(), this.polling.stop()]);
+
+    // Close the WebSocket server
+    await new Promise<void>((resolve, reject) => {
+      this.wss.close((err) => {
+        if (err) {
+          console.error("Error closing WebSocket server:", err);
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
+
+    console.log("WebSocket service shutdown complete");
   }
 }
 
 // Handle process termination
 const wsService = new WebSocketService();
-process.on("SIGINT", () => wsService.stop());
-process.on("SIGTERM", () => wsService.stop());
+
+async function shutdown(signal: string) {
+  console.log(`Received ${signal}. Starting graceful shutdown...`);
+  try {
+    await wsService.stop();
+    process.exit(0);
+  } catch (error) {
+    console.error("Error during shutdown:", error);
+    process.exit(1);
+  }
+}
+
+// Handle different termination signals
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGQUIT", () => shutdown("SIGQUIT"));

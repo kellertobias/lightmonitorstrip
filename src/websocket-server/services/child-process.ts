@@ -13,6 +13,8 @@ export class ChildProcess extends EventEmitter {
   private readonly restartWindow = 60 * 1000; // 1 minute in ms
   private readonly backoffTime = 5 * 60 * 1000; // 5 minutes in ms
   private backoffTimeout: NodeJS.Timeout | null = null;
+  private restartTimeout: NodeJS.Timeout | null = null;
+  private isShuttingDown = false;
 
   start(command: string, args: string[] = []): void {
     this.command = command;
@@ -21,6 +23,8 @@ export class ChildProcess extends EventEmitter {
   }
 
   private startProcess(): void {
+    if (this.isShuttingDown) return;
+
     // Check if we're in backoff period
     if (this.backoffTimeout) {
       return;
@@ -38,39 +42,52 @@ export class ChildProcess extends EventEmitter {
       this.backoffTimeout = setTimeout(() => {
         this.backoffTimeout = null;
         this.restartAttempts = [];
-        this.startProcess();
+        if (!this.isShuttingDown) {
+          this.startProcess();
+        }
       }, this.backoffTime);
       return;
     }
 
     // Start the process
-    this.process = spawn(this.command, this.args);
+    try {
+      this.process = spawn(this.command, this.args);
 
-    // Track restart attempt
-    this.restartAttempts.push(now);
+      // Track restart attempt
+      this.restartAttempts.push(now);
 
-    this.process.stdout?.on("data", (data: Buffer) => {
-      this.handleData(data.toString());
-    });
+      this.process.stdout?.on("data", (data: Buffer) => {
+        this.handleData(data.toString());
+      });
 
-    this.process.stderr?.on("data", (data: Buffer) => {
-      console.log("child process stderr", data.toString());
-    });
+      this.process.stderr?.on("data", (data: Buffer) => {
+        console.log("child process stderr", data.toString());
+      });
 
-    this.process.on("error", (error: Error) => {
-      this.handleProcessExit();
-    });
+      this.process.on("error", (error: Error) => {
+        if (!this.isShuttingDown) {
+          this.handleProcessExit();
+        }
+      });
 
-    this.process.on("exit", (code: number | null) => {
-      console.warn(`Child process exited with code ${code}`);
-      this.handleProcessExit();
-    });
+      this.process.on("exit", (code: number | null) => {
+        console.warn(`Child process exited with code ${code}`);
+        if (!this.isShuttingDown) {
+          this.handleProcessExit();
+        }
+      });
+    } catch (error) {
+      console.error("Failed to start child process:", error);
+      if (!this.isShuttingDown) {
+        this.handleProcessExit();
+      }
+    }
   }
 
   private handleProcessExit(): void {
     this.process = null;
     // Attempt restart with a small delay to prevent rapid cycling
-    setTimeout(() => this.startProcess(), 10000);
+    this.restartTimeout = setTimeout(() => this.startProcess(), 10000);
   }
 
   private handleData(chunk: string): void {
@@ -93,15 +110,51 @@ export class ChildProcess extends EventEmitter {
     }
   }
 
-  stop(): void {
+  async stop(): Promise<void> {
+    this.isShuttingDown = true;
+
+    // Clear all timeouts
     if (this.backoffTimeout) {
       clearTimeout(this.backoffTimeout);
       this.backoffTimeout = null;
     }
-    if (this.process) {
-      this.process.kill();
-      this.process = null;
+    if (this.restartTimeout) {
+      clearTimeout(this.restartTimeout);
+      this.restartTimeout = null;
     }
-    this.restartAttempts = [];
+
+    // Kill the process if it exists
+    if (this.process) {
+      return new Promise<void>((resolve) => {
+        const cleanup = () => {
+          this.process = null;
+          this.restartAttempts = [];
+          this.buffer = "";
+          resolve();
+        };
+
+        try {
+          // Try SIGTERM first
+          this.process?.once("exit", cleanup);
+          this.process?.kill("SIGTERM");
+
+          // Force kill after 2 seconds if still running
+          setTimeout(() => {
+            if (this.process) {
+              console.warn(
+                "Process did not exit gracefully, forcing termination"
+              );
+              this.process.kill("SIGKILL");
+              cleanup();
+            }
+          }, 2000);
+        } catch (error) {
+          console.error("Error killing process:", error);
+          cleanup();
+        }
+      });
+    }
+
+    return Promise.resolve();
   }
 }
