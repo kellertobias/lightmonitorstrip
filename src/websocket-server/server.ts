@@ -40,7 +40,7 @@ class WebSocketService {
     // Broadcast child process data
     this.childProcess.on("data", (data) => {
       if (!this.isShuttingDown) {
-        this.broadcast({ type: "childProcess", data });
+        this.broadcast({ type: "spl", data });
       }
     });
 

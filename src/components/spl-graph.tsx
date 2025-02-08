@@ -118,7 +118,10 @@ export function SPLGraph({
     <svg
       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
       preserveAspectRatio="none"
-      className={clsx("w-full h-full rounded-lg", className)}
+      className={clsx(
+        "w-full h-full rounded-lg outline outline-1 outline-gray-700",
+        className
+      )}
     >
       <defs>
         {/* Gradient for the line - using gradientUnits="userSpaceOnUse" to make it absolute */}
