@@ -23,10 +23,6 @@ export class ChildProcess extends EventEmitter {
   private startProcess(): void {
     // Check if we're in backoff period
     if (this.backoffTimeout) {
-      this.emit(
-        "error",
-        new Error("Process restart delayed due to too many failures")
-      );
       return;
     }
 
@@ -58,7 +54,7 @@ export class ChildProcess extends EventEmitter {
     });
 
     this.process.stderr?.on("data", (data: Buffer) => {
-      this.emit("error", new Error(data.toString()));
+      console.log("child process stderr", data.toString());
     });
 
     this.process.on("error", (error: Error) => {
