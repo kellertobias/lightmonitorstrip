@@ -50,7 +50,11 @@ class WebSocketService {
     // check if the executable /home/keller/repos/gm1356/splread exists.
     // if so, start the child process. Otherwise start the mock process.
     if (existsSync("/home/keller/repos/gm1356/splread")) {
-      this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
+      this.childProcess.start("/home/keller/repos/gm1356/splread", [
+        "-i 50",
+        "-f",
+        "-r 30-130",
+      ]);
     } else {
       this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
     }
