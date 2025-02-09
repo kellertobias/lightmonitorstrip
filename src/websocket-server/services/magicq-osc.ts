@@ -115,6 +115,7 @@ export class MagicQOscService extends EventEmitter {
       }
     }, 60000); // 1 minute
 
+    console.log("Sending feedback request");
     const message = new OSC.Message("/feedback/exec");
     this.osc.send(message);
   }
