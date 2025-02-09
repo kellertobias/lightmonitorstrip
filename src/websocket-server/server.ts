@@ -3,7 +3,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { ChildProcess } from "./services/child-process";
 import { MagicQHttpService } from "./services/magicq-http";
 import { MagicQOscService } from "./services/magicq-osc";
-import { OSCMidiService } from "./services/osc-midi";
+import { MidiService } from "./services/midi";
 import { existsSync } from "fs";
 
 dotenv.config();
@@ -21,7 +21,14 @@ class WebSocketService {
   private childProcess: ChildProcess;
   private magicq: MagicQHttpService;
   private magicqOsc: MagicQOscService;
+  private midi: MidiService;
+
   private isShuttingDown = false;
+
+  private state: Record<
+    number,
+    { type: "toggle" | "flash" | "fader" | "other"; value: number }
+  > = {};
 
   constructor() {
     // Initialize WebSocket server on its own port
@@ -36,6 +43,22 @@ class WebSocketService {
       receivePort: MAGICQ_OSC_RECEIVE_PORT,
       sendPort: MAGICQ_OSC_SEND_PORT,
       address: MAGICQ_IP,
+    });
+    this.midi = new MidiService();
+
+    this.magicqOsc.on("osc", (data) => {
+      this.state[data.exec] = {
+        type: data.type,
+        value: data.value,
+      };
+
+      this.broadcast({
+        type: "val",
+        data: {
+          number: data.exec,
+          value: data.value,
+        },
+      });
     });
 
     // Setup WebSocket connection handling
@@ -68,6 +91,16 @@ class WebSocketService {
                 type: "show-setup",
                 data: magicqData,
               });
+              if ("executors" in magicqData) {
+                for (const exec of Object.values(magicqData.executors)) {
+                  this.state[exec.number] = {
+                    type: exec.number > 40 ? "fader" : exec.type,
+                    value: this.state[exec.number]?.value || 0,
+                  };
+                }
+
+                console.log("State", this.state);
+              }
 
               break;
 
@@ -119,16 +152,38 @@ class WebSocketService {
 
     this.magicqOsc.start();
 
-    console.log(`WebSocket server running on ws://localhost:${WS_PORT}`);
-  }
+    this.midi.start();
+    this.midi.on("midi", (data) => {
+      const exec = data.exec;
+      const type = this.state[exec]?.type || exec > 40 ? "fader" : "toggle";
+      this.state[exec] = this.state[exec] || {
+        type,
+        value: 0,
+      };
+      const lastValue = this.state[exec].value;
+      let value = 0;
+      if (type === "fader") {
+        value = Math.min(data.value / 127, 0.9999);
+      } else if (type === "toggle" && data.value > 0) {
+        value = lastValue === 0 ? 1 : 0;
+      } else if (type === "toggle") {
+        return; // ignore note off for toggle
+      } else if (type === "flash" || type === "other") {
+        value = data.value > 0 ? 1 : 0;
+      }
 
-  private handleExecutorUpdate(executors: Record<number, number>): void {
-    if (!this.isShuttingDown) {
+      this.state[exec].value = value;
+      this.magicqOsc.sendExecutorCommand(exec, value);
       this.broadcast({
-        type: "executor-update",
-        data: executors,
+        type: "val",
+        data: {
+          number: exec,
+          value,
+        },
       });
-    }
+    });
+
+    console.log(`WebSocket server running on ws://localhost:${WS_PORT}`);
   }
 
   private broadcast(data: any): void {

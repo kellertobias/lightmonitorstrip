@@ -1,4 +1,5 @@
 import { JSDOM } from "jsdom";
+import { getExecutorNumber } from "./helpers";
 
 interface MagicQData {
   showName: string | null;
@@ -122,11 +123,7 @@ export class MagicQHttpService {
         const index = Number(row.name);
         const value = row.value;
 
-        // the executor buttons each take two rows.
-        // so executor 1 has the index 1 and 11, 2 and 12, 21 and 31, etc.
-        const execColNumber = index % 20 > 10 ? (index % 20) - 10 : index % 20;
-        const execRowNumber = Math.floor(index / 20);
-        const execNumber = execColNumber + execRowNumber * 10;
+        const execNumber = getExecutorNumber(index);
 
         if (isNaN(execNumber)) {
           console.log(`Invalid executor number: ${execNumber}`);

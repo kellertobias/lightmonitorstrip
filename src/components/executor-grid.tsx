@@ -12,13 +12,21 @@ interface Executor {
   dotColor: string | null;
 }
 
-interface WSMessage {
-  type: string;
-  data: {
-    executors?: Record<number, Executor>;
-    showName?: string;
-  };
-}
+type WSMessage =
+  | {
+      type: "show-setup";
+      data: {
+        executors?: Record<number, Executor>;
+        showName?: string;
+      };
+    }
+  | {
+      type: "val";
+      data: {
+        number: number;
+        value: number;
+      };
+    };
 
 const btnBaseClasses =
   "border-2 rounded-md flex flex-col items-center justify-center text-center font-mono font-semibold text-sm p-2 px-4 relative transition-colors duration-200";
@@ -51,20 +59,16 @@ function ExecutorButton({
   const isActive = value > 0;
 
   const bgActive = executor?.color
-    ? `#${darkenColor(executor.color, 0.4)}`
-    : executor
-    ? "#333333"
-    : "#030303";
+    ? `#${darkenColor(executor.color, 0.5)}`
+    : "#333333";
+
   const bgDefault = executor?.color
-    ? `#${darkenColor(executor.color, 0.25)}`
+    ? `#${darkenColor(executor.color, 0.2)}`
     : executor
     ? "#111111"
     : "#000000";
-  const borderActive = executor?.color
-    ? `#${executor.color}`
-    : executor
-    ? "#888888"
-    : "#222222";
+  const borderActive = executor?.color ? `#${executor.color}` : "#888888";
+
   const borderDefault = executor?.color
     ? `#${darkenColor(executor.color, 0.8)}`
     : executor
@@ -83,10 +87,14 @@ function ExecutorButton({
         {execNumber}
       </div>
       <div
-        className="text-[0.6rem] text-white absolute top-1 left-1 right-1 bottom-1 flex items-center justify-center"
+        className={clsx(
+          "text-[0.6rem] absolute top-1 left-1 right-1 bottom-1 flex items-center justify-center",
+          { "text-white": executor?.name },
+          { "text-gray-800": !executor?.name }
+        )}
         style={{ lineHeight: 1.1 }}
       >
-        {executor?.name}
+        {executor?.name || `<Empty>`}
       </div>
       {executor?.dotColor && (
         <div
@@ -109,8 +117,13 @@ function ExecutorPoti({
 }) {
   return (
     <div className={clsx("h-full relative flex flex-row gap-4 items-center")}>
-      <div className="text-[0.6rem] font-semibold text-white">
-        {executor?.name}
+      <div
+        className={clsx("text-[0.6rem] font-semibold", {
+          "text-white": executor?.name,
+          "text-gray-500": !executor?.name,
+        })}
+      >
+        {executor?.name || `<Executor ${execNumber}>`}
       </div>
       {/* Circular progress indicator with bottom opening */}
       <div className="relative w-8 h-8">
@@ -123,8 +136,9 @@ function ExecutorPoti({
             fill="none"
             stroke="#666666"
             strokeWidth="4"
-            strokeDasharray="85 15" // Creates gap at bottom
+            strokeDasharray="75 25" // Creates 75° gap at bottom (360° * 25/100 = 90°)
             strokeLinecap="round"
+            transform="rotate(-135 18 18)" // Rotated to center gap at bottom
           />
           {/* Progress arc that fills based on value */}
           <path
@@ -134,8 +148,9 @@ function ExecutorPoti({
             fill="none"
             stroke="#ffffff"
             strokeWidth="4"
-            strokeDasharray={`${value * 85} 100`} // Scales fill with value
+            strokeDasharray={`${value * 75} 100`} // Scales fill with value, adjusted for 75° gap
             strokeLinecap="round"
+            transform="rotate(-135 18 18)" // Matches background rotation
           />
         </svg>
       </div>
@@ -157,6 +172,11 @@ export function ExecutorGrid() {
         setExecutors(message.data.executors || []);
         setReloading(false);
         break;
+      case "val":
+        setActive((prev) => ({
+          ...prev,
+          [message.data.number]: message.data.value,
+        }));
     }
   }, []);
 
@@ -179,7 +199,7 @@ export function ExecutorGrid() {
             Current Show: {showName}
           </span>
         </div>
-        <div className="flex flex-row gap-4 items-center justify-end h-full">
+        <div className="flex flex-row gap-4 items-center justify-end h-full pr-4">
           <ExecutorPoti
             execNumber={41}
             executor={executors[41]}

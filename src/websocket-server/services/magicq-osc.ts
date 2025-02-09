@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import OSC from "osc-js";
+import { getExecutorNumber, makeExecutorNumber } from "./helpers";
 
 /**
  * Service for handling OSC and MIDI communications
@@ -7,9 +8,6 @@ import OSC from "osc-js";
  */
 export class MagicQOscService extends EventEmitter {
   private feedbackInterval: NodeJS.Timeout | null = null;
-  private currentExecutors: Record<number, number> = {};
-  private onExecutorUpdate?: (executors: Record<number, number>) => void;
-
   private osc: OSC;
 
   constructor(
@@ -27,7 +25,11 @@ export class MagicQOscService extends EventEmitter {
       }),
     });
 
-    this.osc.on("message", this.handleOSCMessage.bind(this));
+    this.osc.on("open", () => {
+      console.log(
+        `(open) OSC server started on ${this.connection.receivePort}`
+      );
+    });
   }
 
   /**
@@ -36,10 +38,11 @@ export class MagicQOscService extends EventEmitter {
   public start(): void {
     // Start OSC server
     this.osc.open({
-      host: "0.0.0.0",
+      host: "192.168.42.42",
       port: this.connection.receivePort,
     });
     console.log(`OSC server started on ${this.connection.receivePort}`);
+    this.osc.on("*", this.handleOSCMessage.bind(this));
 
     // Start feedback interval
     this.startFeedbackInterval();
@@ -60,7 +63,8 @@ export class MagicQOscService extends EventEmitter {
   }
 
   public sendOSC(path: string, value: number | string): void {
-    const message = new OSC.Message(path, value);
+    const message = new OSC.Message(path, Number(value));
+    console.log("Sending OSC message:", message);
     this.osc.send(message, {
       host: this.connection.address,
       port: this.connection.sendPort,
@@ -73,28 +77,20 @@ export class MagicQOscService extends EventEmitter {
    * @param value Float value between 0 and 1
    */
   public async sendExecutorCommand(
-    address: string,
+    exec: number,
     value: number
-  ): Promise<void> {
+  ): Promise<number> {
+    const execNumber = makeExecutorNumber(exec);
     try {
-      console.log("Sending executor command:", address, value);
       // Validate value range
       const normalizedValue = Math.max(0, Math.min(1, value));
+      const address = `/exec/1/${execNumber}`;
 
-      // Send OSC message
-      const message = new OSC.Message(address, normalizedValue);
-      await this.osc.send(message);
-
-      // Update internal state if it's an executor command
-      const match = address.match(/^\/exec\/1\/(\d+)$/);
-      if (match) {
-        const executorNumber = parseInt(match[1], 10);
-        this.updateExecutorState(executorNumber, normalizedValue);
-      }
+      this.sendOSC(address, normalizedValue);
     } catch (error) {
       console.error("Error sending executor command:", error);
-      throw new Error("Failed to send executor command");
     }
+    return execNumber;
   }
 
   /**
@@ -125,35 +121,23 @@ export class MagicQOscService extends EventEmitter {
    */
   private handleOSCMessage(message: OSC.Message): void {
     try {
-      console.log("Received OSC message:", message.args);
+      console.log("Received OSC message:", message);
+
       // Check if it's an executor update
       const match = message.address.match(/^\/exec\/1\/(\d+)$/);
       if (match && message.args.length > 0) {
-        const executorNumber = parseInt(match[1], 10);
+        const executorNumber = getExecutorNumber(parseInt(match[1], 10));
         const value = message.args[0] as number;
-        this.updateExecutorState(executorNumber, value);
+
+        this.emit("osc", {
+          exec: executorNumber,
+          value,
+        });
       }
 
       // Emit the OSC message for other handlers
-      this.emit("osc", {
-        address: message.address,
-        args: message.args,
-      });
     } catch (error) {
       console.error("Error handling OSC message:", error);
-    }
-  }
-
-  /**
-   * Updates the internal state of executors and notifies listeners
-   */
-  private updateExecutorState(executorNumber: number, value: number): void {
-    // Update internal state
-    this.currentExecutors[executorNumber] = value;
-
-    // Notify listeners
-    if (this.onExecutorUpdate) {
-      this.onExecutorUpdate(this.currentExecutors);
     }
   }
 }
