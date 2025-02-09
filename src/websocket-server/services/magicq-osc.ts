@@ -107,6 +107,7 @@ export class MagicQOscService extends EventEmitter {
     // Send feedback request every minute
     this.feedbackInterval = setInterval(() => {
       try {
+        console.log("Sending feedback request");
         const message = new OSC.Message("/feedback/exec");
         this.osc.send(message);
       } catch (error) {
