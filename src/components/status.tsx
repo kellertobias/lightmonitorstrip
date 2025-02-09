@@ -4,7 +4,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { useEffect, useState } from "react";
 
 export function ConnectionStatus() {
-  const { status, disconnectedSince } = useWebSocket();
+  const { status, disconnectedSince } = useWebSocket(() => {});
   const [disconnectionTime, setDisconnectionTime] = useState<string>("");
 
   useEffect(() => {
