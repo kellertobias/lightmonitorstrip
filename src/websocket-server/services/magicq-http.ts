@@ -133,7 +133,7 @@ export class MagicQHttpService {
         executors[execNumber] = executors[execNumber] || {};
 
         // the first row is the name, the second row has configuration options
-        if (index % 20 < 10) {
+        if ((index - 1) % 20 < 10) {
           executors[execNumber].name = value;
           executors[execNumber].number = execNumber;
         } else {
@@ -141,14 +141,14 @@ export class MagicQHttpService {
           executors[execNumber].color = parts[0];
           executors[execNumber].dotColor =
             parts[2]?.toLowerCase() === "x" ? null : parts[2] || null;
-          switch (parts[1]) {
-            case "T":
+          switch (parts[1]?.toLowerCase()) {
+            case "t":
               executors[execNumber].type = "toggle";
               break;
-            case "F":
+            case "f":
               executors[execNumber].type = "flash";
               break;
-            case "V":
+            case "v":
               executors[execNumber].type = "fader";
               break;
             default:

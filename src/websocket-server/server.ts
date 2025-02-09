@@ -110,8 +110,6 @@ class WebSocketService {
                     value: this.state[exec.number]?.value || 0,
                   };
                 }
-
-                console.log("State", this.state);
               }
 
               break;
