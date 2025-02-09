@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useCallback, useContext, useEffect } from "react";
 import { WebSocketContext } from "@/contexts/WebSocketContext";
 
 type MessageHandler = (data: any) => void;
@@ -10,7 +10,7 @@ interface UseWebSocketResult {
 }
 
 export function useWebSocket(
-  onMessage?: MessageHandler,
+  onMessage: MessageHandler,
   deps: any[] = []
 ): UseWebSocketResult {
   const context = useContext(WebSocketContext);
@@ -19,11 +19,11 @@ export function useWebSocket(
     throw new Error("useWebSocket must be used within a WebSocketProvider");
   }
 
+  const onMessageWrapped = useCallback(onMessage, [deps]);
+
   useEffect(() => {
-    if (onMessage) {
-      return context.addMessageListener(onMessage);
-    }
-  }, [context, onMessage, ...deps]);
+    return context.addMessageListener(onMessageWrapped);
+  }, [context, onMessageWrapped]);
 
   return {
     status: context.status,

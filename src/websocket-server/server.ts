@@ -1,14 +1,26 @@
+import dotenv from "dotenv";
 import { WebSocketServer, WebSocket } from "ws";
 import { ChildProcess } from "./services/child-process";
-import { Polling } from "./services/polling";
+import { MagicQHttpService } from "./services/magicq-http";
+import { MagicQOscService } from "./services/magicq-osc";
+import { OSCMidiService } from "./services/osc-midi";
 import { existsSync } from "fs";
 
+dotenv.config();
+
 const WS_PORT = Number(process.env.WS_PORT || 3001);
+const MAGICQ_IP = process.env.MAGICQ_IP || "localhost";
+const MAGICQ_HTTP_PORT = Number(process.env.MAGICQ_HTTP_PORT || 8080);
+const MAGICQ_OSC_RECEIVE_PORT = Number(
+  process.env.MAGICQ_OSC_RECEIVE_PORT || 8000
+);
+const MAGICQ_OSC_SEND_PORT = Number(process.env.MAGICQ_OSC_SEND_PORT || 9000);
 
 class WebSocketService {
   private wss: WebSocketServer;
   private childProcess: ChildProcess;
-  private polling: Polling;
+  private magicq: MagicQHttpService;
+  private magicqOsc: MagicQOscService;
   private isShuttingDown = false;
 
   constructor() {
@@ -17,7 +29,14 @@ class WebSocketService {
 
     // Initialize services
     this.childProcess = new ChildProcess();
-    this.polling = new Polling();
+    this.magicq = new MagicQHttpService(
+      `http://${MAGICQ_IP}:${MAGICQ_HTTP_PORT}`
+    );
+    this.magicqOsc = new MagicQOscService({
+      receivePort: MAGICQ_OSC_RECEIVE_PORT,
+      sendPort: MAGICQ_OSC_SEND_PORT,
+      address: MAGICQ_IP,
+    });
 
     // Setup WebSocket connection handling
     this.wss.on("connection", (ws) => {
@@ -35,6 +54,50 @@ class WebSocketService {
       ws.on("error", (error) => {
         console.error("WebSocket connection error:", error);
       });
+
+      // Handle incoming messages
+      ws.on("message", async (data) => {
+        try {
+          const message = JSON.parse(data.toString());
+
+          switch (message.type) {
+            case "reload-executors":
+              // Fetch names from MagicQ and broadcast to clients
+              const magicqData = await this.magicq.fetchData();
+              this.broadcast({
+                type: "show-setup",
+                data: magicqData,
+              });
+
+              break;
+
+            case "exec":
+              // Forward OSC messages to MagicQ
+              try {
+                if (message.address && message.value !== undefined) {
+                  await this.magicqOsc.sendExecutorCommand(
+                    message.address,
+                    message.value
+                  );
+                }
+              } catch (error) {
+                console.error("Error sending OSC message:", error);
+                ws.send(
+                  JSON.stringify({
+                    type: "error",
+                    error: "Failed to send OSC message",
+                  })
+                );
+              }
+              break;
+
+            default:
+              console.warn("Unknown message type:", message.type);
+          }
+        } catch (error) {
+          console.error("Error processing WebSocket message:", error);
+        }
+      });
     });
 
     // Broadcast child process data
@@ -44,27 +107,28 @@ class WebSocketService {
       }
     });
 
-    // Broadcast polling data
-    this.polling.on("change", (data) => {
-      if (!this.isShuttingDown) {
-        this.broadcast({ type: "polling", data });
-      }
-    });
-
     // Start services
-    // check if the executable /home/keller/repos/gm1356/splread exists.
-    // if so, start the child process. Otherwise start the mock process.
     if (existsSync("/home/keller/repos/gm1356/splread")) {
       this.childProcess.start("/home/keller/repos/gm1356/splread", [
         "-i 50",
         "-f",
       ]);
     } else {
-      this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
+      // this.childProcess.start("npx", ["tsx", "src/mock/mockMeasurement.ts"]);
     }
-    // this.polling.start();
+
+    this.magicqOsc.start();
 
     console.log(`WebSocket server running on ws://localhost:${WS_PORT}`);
+  }
+
+  private handleExecutorUpdate(executors: Record<number, number>): void {
+    if (!this.isShuttingDown) {
+      this.broadcast({
+        type: "executor-update",
+        data: executors,
+      });
+    }
   }
 
   private broadcast(data: any): void {
@@ -93,8 +157,8 @@ class WebSocketService {
       }
     }
 
-    // Stop child process and polling
-    await Promise.all([this.childProcess.stop(), this.polling.stop()]);
+    // Stop all services
+    await Promise.all([this.childProcess.stop(), this.magicqOsc.stop()]);
 
     // Close the WebSocket server
     await new Promise<void>((resolve, reject) => {

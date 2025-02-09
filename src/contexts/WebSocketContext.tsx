@@ -39,8 +39,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const wsRef = useRef<WebSocket | null>(null);
   const messageListenersRef = useRef<Set<(data: any) => void>>(new Set());
 
-  const connect = () => {
+  const connect = React.useCallback(() => {
     try {
+      console.log("Connecting to WebSocket");
       const ws = new WebSocket(`ws://${window.location.host}/ws`);
       wsRef.current = ws;
 
@@ -88,10 +89,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       const now = Date.now();
       setDisconnectedSince(now);
     }
-  };
+  }, []);
 
   useEffect(() => {
     connect();
+
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
@@ -99,18 +101,25 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const sendMessage = (message: unknown) => {
+  const sendMessage = React.useCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(message));
     }
-  };
+  }, []);
 
-  const addMessageListener = (listener: (data: any) => void) => {
-    messageListenersRef.current.add(listener);
-    return () => {
-      messageListenersRef.current.delete(listener);
-    };
-  };
+  const addMessageListener = React.useCallback(
+    (listener: (data: any) => void) => {
+      if (typeof listener !== "function") {
+        return () => {};
+      }
+
+      messageListenersRef.current.add(listener);
+      return () => {
+        messageListenersRef.current.delete(listener);
+      };
+    },
+    []
+  );
 
   return (
     <WebSocketContext.Provider
