@@ -65,6 +65,7 @@ export class MagicQOscService extends EventEmitter {
 
   public sendOSC(path: string, value: number | string): void {
     const message = new OSC.Message(path, Number(value) * 1.0);
+    message.types = "f";
     console.log("Sending OSC message:", message);
     this.osc.send(message, {
       host: this.connection.sendAddress,

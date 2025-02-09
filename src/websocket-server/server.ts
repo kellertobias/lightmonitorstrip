@@ -32,6 +32,16 @@ class WebSocketService {
   > = {};
 
   constructor() {
+    console.log(`
++----------------------------------+
+| LISTEN_IP: ${LISTEN_IP}            |
+| MAGICQ_IP: ${MAGICQ_IP}            |
+| MAGICQ_HTTP_PORT: ${MAGICQ_HTTP_PORT} |
+| MAGICQ_OSC_RECEIVE_PORT: ${MAGICQ_OSC_RECEIVE_PORT} |
+| MAGICQ_OSC_SEND_PORT: ${MAGICQ_OSC_SEND_PORT} |
++----------------------------------+
+`);
+
     // Initialize WebSocket server on its own port
     this.wss = new WebSocketServer({ port: WS_PORT });
 
