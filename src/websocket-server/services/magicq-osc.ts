@@ -109,7 +109,10 @@ export class MagicQOscService extends EventEmitter {
       try {
         console.log("Sending feedback request");
         const message = new OSC.Message("/feedback/exec");
-        this.osc.send(message);
+        this.osc.send(message, {
+          host: this.connection.sendAddress,
+          port: this.connection.sendPort,
+        });
       } catch (error) {
         console.error("Error sending feedback request:", error);
       }
@@ -117,7 +120,10 @@ export class MagicQOscService extends EventEmitter {
 
     console.log("Sending feedback request");
     const message = new OSC.Message("/feedback/exec");
-    this.osc.send(message);
+    this.osc.send(message, {
+      host: this.connection.sendAddress,
+      port: this.connection.sendPort,
+    });
   }
 
   /**
