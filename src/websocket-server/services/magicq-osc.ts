@@ -13,8 +13,9 @@ export class MagicQOscService extends EventEmitter {
   constructor(
     private connection: {
       receivePort: number;
+      receiveAddress: string;
       sendPort: number;
-      address: string;
+      sendAddress: string;
     }
   ) {
     super();
@@ -38,7 +39,7 @@ export class MagicQOscService extends EventEmitter {
   public start(): void {
     // Start OSC server
     this.osc.open({
-      host: "192.168.42.42",
+      host: this.connection.receiveAddress,
       port: this.connection.receivePort,
     });
     console.log(`OSC server started on ${this.connection.receivePort}`);
@@ -66,7 +67,7 @@ export class MagicQOscService extends EventEmitter {
     const message = new OSC.Message(path, Number(value));
     console.log("Sending OSC message:", message);
     this.osc.send(message, {
-      host: this.connection.address,
+      host: this.connection.sendAddress,
       port: this.connection.sendPort,
     });
   }

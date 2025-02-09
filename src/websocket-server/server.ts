@@ -9,6 +9,7 @@ import { existsSync } from "fs";
 dotenv.config();
 
 const WS_PORT = Number(process.env.WS_PORT || 3001);
+const LISTEN_IP = process.env.LISTEN_IP || "localhost";
 const MAGICQ_IP = process.env.MAGICQ_IP || "localhost";
 const MAGICQ_HTTP_PORT = Number(process.env.MAGICQ_HTTP_PORT || 8080);
 const MAGICQ_OSC_RECEIVE_PORT = Number(
@@ -42,7 +43,8 @@ class WebSocketService {
     this.magicqOsc = new MagicQOscService({
       receivePort: MAGICQ_OSC_RECEIVE_PORT,
       sendPort: MAGICQ_OSC_SEND_PORT,
-      address: MAGICQ_IP,
+      receiveAddress: LISTEN_IP,
+      sendAddress: MAGICQ_IP,
     });
     this.midi = new MidiService();
 
