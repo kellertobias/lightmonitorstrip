@@ -6,6 +6,8 @@ It communicates via OSC to MagicQ and uses its HTTP API to update the available 
 
 ! This project is written by AI in large parts (as an experiment how far you can push it). That's why the code might not be super clean. The project however is fully functional and has been used to control lights for a few events.
 
+![Project Screenshot](docs/example-render.png)
+
 ## Project Layout:
 
 ```
