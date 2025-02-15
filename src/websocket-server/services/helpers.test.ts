@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest";
-import { getExecutorNumber, makeExecutorNumber } from "../helpers";
+import { getExecutorNumber, makeExecutorNumber } from "./helpers";
 
 describe("getExecutorNumber", () => {
   test("first row executors", () => {
